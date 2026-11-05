@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Commodities AUVP</title>
+<link rel="stylesheet" href="assets/estilo.css">
+</head>
+<body>
+<header class="site-topo">
+  <div class="site-topo-in">
+    <a class="site-nome" href="index.html"><span class="site-marca" aria-hidden="true">AUVP</span>Commodities</a>
+    <nav class="site-menu" aria-label="Seções do site">
+      <a href="index.html" aria-current="page">Início</a>
+      <a href="petroleo.html">Petróleo</a>
+      <span class="breve">Vale <small>em construção</small></span>
+      <span class="breve">Ouro <small>em construção</small></span>
+    </nav>
+    <button class="botao" id="tema" type="button">Tema escuro</button>
+  </div>
+</header>
+<main class="pagina">
+  <div class="cabeca">
+    <h1>Commodities no ciclo</h1>
+    <p class="sub">Ouro, minério e petróleo: onde cada um está no ciclo e o que isso diz sobre os preços das ações ligadas a eles. Análise da AUVP; não é recomendação de investimento.</p>
+    <p class="meta" id="meta"></p>
+  </div>
+  <div class="projetos">
+    <a class="projeto" href="petroleo.html">
+      <h2>Petróleo</h2>
+      <p>Petrobras e Prio contra o Brent: veredito pela commodity, Brent no ciclo, prêmio no preço, fatores, eventos, inflação e resultados.</p>
+      <div class="acoes" id="acoes-petroleo"></div>
+      <span class="ir">Abrir a análise →</span>
+    </a>
+    <div class="projeto breve">
+      <h2>Vale</h2>
+      <p>VALE3 contra o minério de ferro e o dólar: margem por tonelada e indicadores. O veredito pelo ciclo do minério ainda será testado com os dados.</p>
+      <div class="acoes"><div class="acao"><span>VALE3</span><span class="selo selo-BREVE pequeno">em construção</span></div></div>
+    </div>
+    <div class="projeto breve">
+      <h2>Ouro</h2>
+      <p>O ouro contra a bolsa, o petróleo e a própria tendência: termômetro de três réguas, com os cortes ainda a testar.</p>
+      <div class="acoes"><div class="acao"><span>Ouro</span><span class="selo selo-BREVE pequeno">em construção</span></div></div>
+    </div>
+  </div>
+  <div class="ler">
+    <h3>Como o site funciona</h3>
+    <p>Os dados vêm das mesmas bases dos painéis de Power BI e dos Excel de cada projeto. O veredito e os números são recalculados a cada atualização; os textos de interpretação levam a data em que foram escritos, porque não mudam sozinhos.</p>
+  </div>
+</main>
+<script src="dados/inicio.js"></script>
+<script src="assets/base.js"></script>
+<script>
+'use strict';
+const I = window.INICIO;
+document.getElementById('meta').textContent = `Preços de ${I.data_precos} · gerado em ${I.gerado}`;
+document.getElementById('acoes-petroleo').append(
+  el('div', { class: 'acao' }, el('span', { text: `Brent ${fmtUS(I.hoje.brent)} (corte de CARA: ${fmtUS(I.regra.corte, 0)})` })),
+  ...Object.values(I.vereditos).map((v) => el('div', { class: 'acao' }, el('span', { text: `${v.ticker} ${fmtRS(v.preco)}` }), selo(v.ver, true))));
+iniciarTema();
+</script>
+</body>
+</html>
