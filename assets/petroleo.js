@@ -274,16 +274,35 @@ function renderFatores() {
   p.append(el('div', { class: 'filtros' }, el('div', { class: 'filtro' }, 'Período do gráfico e das correlações', segmentoEmpresa(ini, (v) => { estado.correl = v; renderFatores(); }, [['2011', 'Desde 2011'], ['2015', 'Desde 2015'], ['2019', 'Desde 2019'], ['2022', 'Desde 2022']]))));
   const pares = (k) => ab.filter((x) => x.rb != null && x[k] != null);
   const cP = correlacao(pares('rp').map((x) => x.rb), pares('rp').map((x) => x.rp)), cR = correlacao(pares('rr').map((x) => x.rb), pares('rr').map((x) => x.rr));
-  const base = (k) => { const pr = ab.find((x) => x[k] != null); return ab.map((x) => (x[k] != null && pr ? 100 * x[k] / pr[k] : null)); };
+  // Quanto cada um andou desde o 1º mês (100 = ponto de partida). Os retornos mensais rb, rp e rr são logarítmicos e, nas ações,
+  // já trazem os dividendos reinvestidos (conferido em 06/11/2026 contra os proventos do Yahoo: PETR4 ×4,8 em dólar de jan/2022 a out/2026).
+  const andou = (kp, kr) => {
+    let s = null, parou = false;
+    return ab.map((x) => {
+      if (parou) return null;
+      if (s == null) { if (x[kp] == null) return null; s = 0; return 100; }
+      if (x[kr] == null) { parou = true; return null; }   // sem o retorno de um mês, a linha para ali em vez de inventar
+      s += x[kr]; return 100 * Math.exp(s);
+    });
+  };
+  const razaoPreco = (k) => { const v = ab.filter((x) => x[k] != null); return v.length > 1 ? v[v.length - 1][k] / v[0][k] : null; };
+  // r = quanto vale hoje cada 1 do começo: de 10 vezes para cima, "×20" lê melhor que "+1.900%"; perto de −100%, uma casa para não repetir
+  const variacao = (r) => (r == null ? '—' : r >= 10 ? `×${fmtN(r, r >= 100 || Math.abs(r - Math.round(r)) < 1e-9 ? 0 : 1)}` : fmtPct(r - 1, r < 0.1 ? 1 : 0));
+  const naFrase = (nome, r) => (r == null ? `${nome}, —` : r >= 10 ? `${nome} multiplicou por ${fmtN(r, 0)}` : `${nome} fez ${fmtPct(r - 1, 0)}`);
+  const fmtAndou = (v, ds, i) => (v == null ? '—' : `${variacao(v / 100)}${ds.comDividendos ? ' com dividendos' : ''} · preço US$ ${fmtN(ds.precos[i], 2)}`);
   const lab2 = ab.map((x) => x.m);
-  const g7 = cartaoGrafico('g-base100', `Ações em dólar × Brent, base 100 em ${mesTxt(lab2[0])}`, 'Fim de cada mês, sem dividendos, em um eixo só e em escala logarítmica (a mesma distância vale a mesma variação em %). Meses incompletos ficam de fora.', 320);
+  const g7 = cartaoGrafico('g-base100', 'As ações andam junto com o petróleo?',
+    `Quanto cada um andou desde ${mesTxt(lab2[0])}, em dólar, no fim de cada mês. Ações com os dividendos reinvestidos: só no preço, ${naFrase('a PETR4', razaoPreco('pu'))} e ${naFrase('a PRIO3', razaoPreco('ru'))}. Linhas juntas: a ação segue o petróleo; linhas que se afastam: pesa mais a própria empresa. Escala logarítmica (a mesma distância vale a mesma variação em %); meses incompletos ficam de fora.`, 320);
   const tabC = el('div', { class: 'cartao' }, cabecalho('Correlação dos retornos mensais com o Brent', `De ${mesTxt(lab2[0])} a ${mesTxt(lab2[lab2.length - 1])}, em dólar e com dividendos. Calculado na página, para o período escolhido.`),
     tabelaOrdenavel([{ campo: 'a', rotulo: 'Ação' }, { campo: 'r', rotulo: 'Correlação', num: true, fmt: (v) => fmtN(v, 2) }, { campo: 'r2', rotulo: 'R²', num: true, fmt: (v) => fmtPct(v, 0, false) }, { campo: 'beta', rotulo: 'Beta', num: true, fmt: (v) => fmtN(v, 2) }, { campo: 'n', rotulo: 'Meses', num: true, fmt: fmtInt }],
       [{ a: 'PETR4', r: cP.r, r2: cP.r * cP.r, beta: cP.beta, n: cP.n }, { a: 'PRIO3', r: cR.r, r2: cR.r * cR.r, beta: cR.beta, n: cR.n }], { livre: true }),
     el('p', { class: 'cartao-sub', style: 'margin-top:10px', text: 'Março de 2020 puxa muito esses números: em 2019–26, sem março a maio de 2020, a correlação cai de cerca de 0,70 para cerca de 0,50 nas duas.' }));
   p.append(el('div', { class: 'linha dupla' }, g7, tabC));
-  desenhar(g7, { type: 'line', data: { labels: lab2, datasets: [serie('Brent', base('b'), C.brent, { rotuloFinal: 'Brent' }), serie('PETR4', base('pu'), C.petrobras, { rotuloFinal: 'PETR4' }), serie('PRIO3', base('ru'), C.prio, { rotuloFinal: 'PRIO3' })] },
-    options: opcoesLinha(lab2, (v) => fmtN(v, 0), { rotulosFinais: true, padDir: 56, log: true, passo: lab2.length > 100 ? 2 : 1 }) }, (v) => fmtN(v, 0), { mira: true, titulo: mesTxt, rotuloX: 'Mês', rotulos: lab2.map(mesTxt) });
+  desenhar(g7, { type: 'line', data: { labels: lab2, datasets: [
+      serie('Brent', andou('b', 'rb'), C.brent, { rotuloFinal: 'Brent', precos: ab.map((x) => x.b) }),
+      serie('PETR4', andou('pu', 'rp'), C.petrobras, { rotuloFinal: 'PETR4', precos: ab.map((x) => x.pu), comDividendos: true }),
+      serie('PRIO3', andou('ru', 'rr'), C.prio, { rotuloFinal: 'PRIO3', precos: ab.map((x) => x.ru), comDividendos: true })] },
+    options: opcoesLinha(lab2, (v) => variacao(v / 100), { rotulosFinais: true, padDir: 56, log: true, passo: lab2.length > 100 ? 2 : 1 }) }, fmtAndou, { mira: true, titulo: mesTxt, rotuloX: 'Mês', rotulos: lab2.map(mesTxt) });
 
   const oo = (m) => F.oos.find((o) => o.modelo === m) || {};
   const of = oo('Modelo de fatores'), ob = oo('Só Brent'), Q = F.quebra, rb = (v) => F.robustez.find((r) => r.variante === v) || {};
