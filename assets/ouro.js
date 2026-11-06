@@ -77,11 +77,13 @@ function renderVeredito() {
   p.append(el('div', { class: 'linha dupla' },
     caixaLer('Conclusão', [con[1], con[5], con[6], con[7], 'Este texto sai das regras do Excel "Caro ou barato - Ouro" e muda sozinho com os preços.'], null, false),
     caixaLer('Onde a regra é mais fraca', [[
+      ...(D.termo_sozinho ? [(() => { const TS = D.termo_sozinho, rr = TS.reguas;   // revisão de 06/11/2026: o termômetro sozinho não prevê; ele vale como filtro de risco junto com a força
+        return `O termômetro sozinho não prevê o retorno: com ele em ${fmtInt(TS.q3)} ou mais (os 25% mais altos), o ouro rendeu ${fmtR(TS.alto)} em 24 meses; com ele até ${fmtInt(TS.q1)} (os 25% mais baixos), ${fmtR(TS.baixo)}. Nas réguas da bolsa e da tendência, a ponta "cara" rendeu ${fmtR(rr.bolsa.caro)} e ${fmtR(rr.tendencia.caro)}, contra ${fmtR(rr.bolsa.barato)} e ${fmtR(rr.tendencia.barato)} da ponta "barata"; só a régua do petróleo apontou para o lado esperado (${fmtR(rr.petroleo.caro)} contra ${fmtR(rr.petroleo.barato)}). Ele vale como filtro de risco junto com a força do preço: no BARATO, ${fmtR(rg('BARATO').perdeu, 0, false)} das compras perderam em 24 meses.`; })()] : []),
       `O aviso de esticado não prevê queda. Com o termômetro de ${fmtInt(R.aviso)} ou mais, as compras deram ${fmtR(caro.r24)} em 24 meses (${fmtR(caro.perdeu, 0, false)} perderam), contra ${fmtR(neutro.r24)} no NEUTRO sem aviso. A diferença só aparece em 36 meses: ${fmtR(caro.r36)} contra ${fmtR(neutro.r36)}.`,
       `O aviso depende de um episódio: sem as compras de 2011–12, ${pc.perdeu_sem === 0 ? `nenhuma das ${fmtInt(pc.meses_sem)} restantes perdeu` : `${fmtR(pc.perdeu_sem, 0, false)} das ${fmtInt(pc.meses_sem)} restantes perderam`} em 24 meses. São só ${fmtInt(pc.janelas)} janelas independentes.`,
       `O ponto do aviso não está bem identificado. Ao reamostrar a história, o melhor corte ficou espalhado: ${top}. Em 75, o retorno em 36 meses foi ${fmtR(pt(75).r36)}; em 85, ${fmtR(pt(85).r36)}; em 90, ${fmtR(pt(90).r36)}.`,
       `O que mais separa é a força do preço: acima da média de 12 meses, ${fmtR(fz('acima').r24)} em 24 meses e ${fmtR(fz('acima').perdeu, 0, false)} de perdas; abaixo, ${fmtR(fz('abaixo').r24)} e ${fmtR(fz('abaixo').perdeu, 0, false)}.`,
-      `Queda grande não é sinal de compra no ouro: até 10% abaixo do pico de 24 meses deu ${fmtR(qd('até 10%').r24)}; de 20% a 30% abaixo, ${fmtR(qd('20 a 30%').r24)}. Com o termômetro até ${fmtInt(R.corte_b)} e o preço ainda abaixo da média de 12 meses, ${fmtR(bt('até 50 e abaixo da média de 12 meses').r24)} e ${fmtR(bt('até 50 e abaixo da média de 12 meses').perdeu, 0, false)} de perdas.`,
+      `No ouro, queda grande não trouxe retorno melhor: até 10% abaixo do pico de 24 meses deu ${fmtR(qd('até 10%').r24)}; de 20% a 30% abaixo, ${fmtR(qd('20 a 30%').r24)}. Com o termômetro até ${fmtInt(R.corte_b)} e o preço ainda abaixo da média de 12 meses, ${fmtR(bt('até 50 e abaixo da média de 12 meses').r24)} e ${fmtR(bt('até 50 e abaixo da média de 12 meses').perdeu, 0, false)} de perdas.`,
       asf.meses ? `Termômetro de 70 ou mais com o preço abaixo da média de 12 meses é raro: só ${fmtInt(asf.meses)} meses com resultado conhecido (${fmtR(asf.r24)} em 24 meses), além de ${fmtInt(asf.agora)} meses recentes ainda sem resultado.`
         : `Termômetro de 70 ou mais com o preço abaixo da média de 12 meses não tem nenhum resultado conhecido: são ${fmtInt(asf.agora)} meses recentes.`,
       `A régua ouro ÷ Brent também muda com o petróleo e usa o último Brent à vista publicado (${H.brent_data}). As faixas foram escolhidas olhando esta mesma história, e o termômetro só existe desde 2005.`]], DATA_LEITURA, false)));
@@ -153,6 +155,21 @@ function renderCiclo() {
     options: opcoesLinha(lab, (v) => 'US$ ' + fmtN(v, 0), { log: estado.escala === 'log', passo: passoEixo(n) }) }, (v) => fmtUS(v, 0), { mira: true, titulo: mesTxt, rotuloX: 'Mês', rotulos: lab.map(mesTxt) });
   const q = graficoMensal('g-queda', 'O ouro contra o pico de 24 meses', 'Fim de cada mês. No ouro, comprar depois de queda grande rendeu menos do que comprar perto do topo.', 280, pts, 'q', corOuro(C), [['20% abaixo do pico', -0.2, C.brent, [6, 4]]], (v) => fmtR(v, 0), (v) => fmtR(v, 1));
   p.append(el('div', { class: 'cartao solto', style: 'padding:0;border:0;background:none' }, q.g)); q.desenhar();
+  // crescimento de 10 e 5 anos contra a média: só informação (pedido do analista, 06/11/2026), com o contexto do único episódio
+  const CR = D.crescimento, cs = CR ? CR.serie.filter((x) => noPeriodo(per, x.m)) : [];
+  if (cs.length) {
+    const lc = cs.map((x) => x.m), nc = lc.length;
+    const g3 = cartaoGrafico('g-cresc', 'Crescimento em 10 e em 5 anos contra a média', `Quanto o ouro cresceu ao ano nos 10 e nos 5 anos até cada mês, em dólar, contra o crescimento médio de ${mesTxt(D.mensal[0].m)} até aquele mês. Só informação: não entra no veredito.`, 280);
+    p.append(el('div', { class: 'cartao solto', style: 'padding:0;border:0;background:none' }, g3));
+    desenhar(g3, { type: 'line', data: { labels: lc, datasets: [serie('10 anos', cs.map((x) => x.c10), corOuro(C), { semRotulo: true }), serie('5 anos', cs.map((x) => x.c5), C.s[0], { borderWidth: 1.5, semRotulo: true }),
+        serie('Média desde 2000', cs.map((x) => x.med), C.brent, { borderWidth: 1.5, borderDash: [6, 4], semRotulo: true })] },
+      options: opcoesLinha(lc, (v) => fmtR(v, 0), { passo: passoEixo(nc) }) }, (v) => fmtR(v, 1), { mira: true, titulo: mesTxt, rotuloX: 'Mês', rotulos: lc.map(mesTxt) });
+    const A = CR.acima, B = CR.abaixo;
+    g3.append(el('p', { class: 'cartao-sub', style: 'margin-top:10px', text:
+      `Hoje: ${fmtR(CR.hoje10, 1)} ao ano em 10 anos e ${fmtR(CR.hoje5, 1)} em 5 anos, contra ${fmtR(CR.media_hoje, 1)} de média. `
+      + (A.meses ? `Na história, o crescimento de 10 anos acima da média veio seguido de ${fmtR(A.r24)} em 24 meses (${fmtR(A.perdeu, 0, false)} das compras perderam), contra ${fmtR(B.r24)} no resto. Mas isso é praticamente um episódio só (${A.de}–${A.ate}), com o juro real americano perto de zero (${fmtN(A.meses ? CR.juro_episodio : 0, 1)}% em média), e a queda veio quando o juro subiu, em 2013. ` : '')
+      + `Hoje o juro real está em ${fmtN(CR.juro_hoje, 1)}% e, desde 2022, o ouro sobe além do que juro e dólar explicam: o precedente não descreve bem o momento atual. Por isso o sinal fica como informação.` }));
+  }
   p.append(el('div', { class: 'cartao solto' }, cabecalho('As quedas de 15% ou mais', 'Fechamento diário, do recorde até o fundo e até voltar ao recorde anterior. O ouro quase sempre sobe, mas já ficou quase 9 anos abaixo do pico.'),
     tabelaOrdenavel([{ campo: 'pico', rotulo: 'Pico', fmt: dataTxt }, { campo: 'preco_pico', rotulo: 'Preço no pico', num: true, fmt: (v) => fmtUS(v, 0) }, { campo: 'fundo', rotulo: 'Fundo', fmt: dataTxt }, { campo: 'preco_fundo', rotulo: 'Preço no fundo', num: true, fmt: (v) => fmtUS(v, 0) }, { campo: 'queda', rotulo: 'Queda', num: true, fmt: (v) => fmtR(v) },
       { campo: 'voltou', rotulo: 'Voltou ao recorde', fmt: (v) => (v ? dataTxt(v) : 'não voltou') }, { campo: 'anos', rotulo: 'Anos até voltar', num: true, fmt: (v) => (v == null ? '—' : fmtN(v, 1)) }], D.caro.quedas, { livre: true })));
@@ -236,7 +253,7 @@ function renderMetodo() {
   p.append(el('div', { class: 'metodo' },
     caixaLer('A regra do veredito', [[
       'No ouro não há CARO: é reserva de valor e, na história, o termômetro alto não avisou queda.', `BARATO: termômetro até ${fmtInt(R.corte_b)} e preço acima da média dos últimos 12 meses.`, 'NEUTRO: qualquer outro caso, inclusive barato com o preço ainda caindo.',
-      `Aviso de esticado: termômetro de ${fmtInt(R.aviso)} ou mais. Comprar ali já significou ficar anos parado; o veredito segue NEUTRO.`,
+      `Aviso de esticado: termômetro de ${fmtInt(R.aviso)} ou mais. Na história, as compras ali ficaram anos sem ganho; o veredito segue NEUTRO.`,
       'Termômetro: média de três percentis, S&P 500 ÷ ouro (invertido), ouro ÷ Brent e distância da reta de tendência (log), cada um medido só com o passado até o mês.',
       'Sem correção por inflação. Juro real, dólar e bancos centrais ficam só como informação.']], null, false),
     caixaLer('Dados', [[
