@@ -65,7 +65,7 @@ document.getElementById('acoes-petroleo').append(
 const IV = window.INICIO_VALE, IO = window.INICIO_OURO;   // resumos gravados a cada atualização da Vale e do Ouro
 if (IV) document.getElementById('acoes-vale').append(
   el('div', { class: 'acao' }, el('span', { text: `Minério ${fmtUS(IV.minerio)} (corte de CARA: ${fmtUS(IV.corte, 0)})` })),
-  el('div', { class: 'acao' }, el('span', { text: `VALE3 ${fmtUS(IV.preco)}` }), selo(IV.ver, true)));
+  el('div', { class: 'acao' }, el('span', { text: `VALE3 ${IV.preco_rs != null ? fmtRS(IV.preco_rs) : fmtUS(IV.preco)}` }), selo(IV.ver, true)));
 if (IO) document.getElementById('acoes-ouro').append(
   el('div', { class: 'acao' }, el('span', { text: `Termômetro ${fmtN(IO.termo, 0)} de 100 (aviso de esticado: ${fmtN(IO.aviso, 0)})` })),
   el('div', { class: 'acao' }, el('span', { text: `Ouro ${fmtUS(IO.ouro, 0)}${IO.esticado ? ', esticado' : ''}` }),

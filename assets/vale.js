@@ -39,10 +39,11 @@ function cartaoVeredito() {
   return el('div', { class: 'veredito' },
     el('div', { class: 'veredito-topo' },
       el('div', { class: 'veredito-nome' }, el('span', { class: 'ponto', style: 'background:' + cores().petrobras }), 'Vale (VALE3)'), selo(V.ver)),
-    el('div', { class: 'veredito-preco', text: fmtUS(V.preco) }),
+    el('div', { class: 'veredito-preco', text: fmtRS(V.preco_rs) }),   // a cotação da ação em reais, como na B3 (pedido do analista, 06/11); a análise segue em dólar
+    el('p', { class: 'cartao-sub', style: 'margin:-4px 0 8px', text: `${fmtUS(V.preco)} com o dólar do dia (R$ ${fmtN(V.ptax, 2)}). Pico, "lixo" e retornos são medidos em dólar.` }),
     el('ul', {},
       el('li', {}, el('span', { text: 'Queda desde o pico de 24 meses, em dólar' }), el('strong', { text: fmtPct(V.queda_pico, 1) })),
-      el('li', {}, el('span', { text: 'Preço de "lixo" (30% abaixo do pico)' }), el('strong', { text: `${fmtUS(V.preco_lixo)} (${fmtPct(V.falta_lixo, 1)})` })),
+      el('li', {}, el('span', { text: 'Preço de "lixo" (30% abaixo do pico)' }), el('strong', { text: `${fmtRS(V.preco_lixo_rs)} (${fmtPct(V.falta_lixo, 1)})` })),
       el('li', {}, el('span', { text: 'Alta em 12 meses, em dólar, com proventos' }), el('strong', { text: fmtPct(V.alta12) })),
       el('li', {}, el('span', { text: 'Distância da média de 200 pregões' }), el('strong', { text: fmtPct(V.acima200) }))));
 }
@@ -54,9 +55,9 @@ function renderVeredito() {
   p.append(el('div', { class: 'grade-tiles' },
     H.minerio >= R.corte ? tile('Para sair de CARA', `Minério < ${fmtUS(R.corte, 0)}`, `${fmtPct(dif, 1)} do minério de hoje.`)
       : tile('Para virar CARA', `Minério ≥ ${fmtUS(R.corte, 0)}`, `${fmtPct(dif, 1)} do minério de hoje.`),
-    V.ver === 'BARATA' ? tile('Para deixar de ser BARATA', `VALE3 > ${fmtUS(V.preco_lixo)}`, `${fmtPct(V.falta_lixo, 1)} do preço de hoje, ou minério de ${fmtUS(R.piso, 1)} ou mais (${fmtPct(R.piso / H.minerio - 1, 1)}).`)
-      : H.minerio < R.piso ? tile('Para virar BARATA', `VALE3 ≤ ${fmtUS(V.preco_lixo)}`, `${fmtPct(V.falta_lixo, 1)} do preço de hoje, com o minério abaixo de ${fmtUS(R.piso, 1)}.`)
-      : tile('Para virar BARATA', `Minério < ${fmtUS(R.piso, 1)}`, `${fmtPct(R.piso / H.minerio - 1, 1)} do minério de hoje, e a ação no "lixo": até ${fmtUS(V.preco_lixo)}.`),
+    V.ver === 'BARATA' ? tile('Para deixar de ser BARATA', `VALE3 > ${fmtRS(V.preco_lixo_rs)}`, `${fmtUS(V.preco_lixo)} com o dólar de hoje; ${fmtPct(V.falta_lixo, 1)} do preço de hoje, ou minério de ${fmtUS(R.piso, 1)} ou mais (${fmtPct(R.piso / H.minerio - 1, 1)}).`)
+      : H.minerio < R.piso ? tile('Para virar BARATA', `VALE3 ≤ ${fmtRS(V.preco_lixo_rs)}`, `${fmtUS(V.preco_lixo)} com o dólar de hoje; ${fmtPct(V.falta_lixo, 1)} do preço de hoje, com o minério abaixo de ${fmtUS(R.piso, 1)}.`)
+      : tile('Para virar BARATA', `Minério < ${fmtUS(R.piso, 1)}`, `${fmtPct(R.piso / H.minerio - 1, 1)} do minério de hoje, e a ação no "lixo": até ${fmtRS(V.preco_lixo_rs)} com o dólar de hoje.`),
     tile('Minério contra o preço médio', fmtPct(H.minerio / R.piso - 1, 1), `Contra o piso de ${fmtUS(R.piso, 1)}; ${fmtPct(V.meses_minerio_maior, 0, false)} dos meses desde 2006 tiveram minério mais alto que hoje`)));
 
   const par = (n) => T.parecido.find((x) => x.situacao === n) || {};

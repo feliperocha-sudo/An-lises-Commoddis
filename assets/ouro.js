@@ -115,6 +115,25 @@ function renderTermometro() {
   p.append(el('div', { class: 'linha', style: 'margin-bottom:16px' }, a.g, b.g, c.g)); a.desenhar(); b.desenhar(); c.desenhar();
   p.append(el('div', { class: 'cartao solto' }, cabecalho('Quando o termômetro ficou esticado ou barato', 'Meses a até 3 de distância contam como o mesmo episódio. O retorno depois de cada um está no Excel.'),
     tabelaOrdenavel([{ campo: 'v', rotulo: 'Situação' }, { campo: 'inicio', rotulo: 'Início', fmt: mesTxt }, { campo: 'fim', rotulo: 'Fim', fmt: mesTxt }, { campo: 'meses', rotulo: 'Meses', num: true, fmt: fmtInt }, { campo: 'termo', rotulo: 'Termômetro mediano', num: true, fmt: (v) => fmtN(v, 0) }, { campo: 'ouro', rotulo: 'Ouro mediano', num: true, fmt: (v) => fmtUS(v, 0) }], D.caro.episodios, { livre: true })));
+
+  // teste com pesos pela correlação: fica no fim, em cinza, e não entra no veredito (pedido do analista, 06/11/2026)
+  const PW = D.pesos, pw = PW ? PW.serie.filter((x) => noPeriodo(per, x.m)) : [];
+  if (pw.length) {
+    const lab3 = pw.map((x) => x.m), n3 = lab3.length;
+    const pesosHoje = PW.hoje.reguas.map((r) => `${r.nome.split(' (')[0].toLowerCase()} ${fmtPct(r.peso, 0, false)}`).join(', ');
+    const g4 = cartaoGrafico('g-pesos', 'Teste: termômetro com pesos pela correlação',
+      `Não entra no veredito. Cada régua pesa conforme a nota alta dela veio seguida de retorno menor nos 24 meses seguintes, só com os retornos já conhecidos em cada mês; além das três réguas, entram juro e dólar e o crescimento de 5 anos. A primeira leitura sai em ${mesTxt(PW.serie[0].m)}.`, 220);
+    p.append(el('div', { class: 'cartao solto', style: 'padding:0;border:0;background:none;margin-top:16px' }, g4));
+    desenhar(g4, { type: 'line', data: { labels: lab3, datasets: [
+        serie('Termômetro (o do veredito)', pw.map((x) => x.t), corOuro(C), { semRotulo: true }),
+        serie('Com pesos pela correlação (teste)', pw.map((x) => x.tp), C.texto3, { semRotulo: true, borderWidth: 1.5, borderDash: [5, 4], pointRadius: 0 }),
+        referencia(`Aviso de esticado (${fmtInt(R.aviso)})`, R.aviso, n3, C.brent, [6, 4]), referencia(`Limite de BARATO (${fmtInt(R.corte_b)})`, R.corte_b, n3, C.barata, [6, 4])] },
+      options: opcoesLinha(lab3, (v) => fmtN(v, 0), { min: 0, max: 100, passo: passoEixo(n3) }) }, (v) => fmtN(v, 1), { mira: true, titulo: mesTxt, rotuloX: 'Mês', rotulos: lab3.map(mesTxt) });
+    g4.append(el('p', { class: 'cartao-sub', style: 'margin-top:10px', text:
+      `Hoje: ${fmtN(PW.hoje.tp, 0)} (o do veredito, ${fmtN(H.termo, 0)}). Pesos de hoje: ${pesosHoje}. Por que não é o oficial: ${PW.petroleo_desde ? `de ${mesTxt(PW.petroleo_desde)} em diante, o petróleo levou quase todo o peso; ` : ''}`
+      + `com pesos, o termômetro ficou em 85 ou mais em ${fmtPct(PW.esticado_p, 0, false)} dos meses (o do veredito, ${fmtPct(PW.esticado_a, 0, false)}) e o BARATO apareceu em ${fmtInt(PW.barato_p)} meses (o do veredito, ${fmtInt(PW.barato_a)}). `
+      + `A correlação com o retorno dos 24 meses seguintes foi de ${fmtN(PW.corr_p, 2)} (o do veredito, ${fmtN(PW.corr_a, 2)}): no ouro, as réguas de preço "alto" funcionaram mais como sinal de força do que de caro.` }));
+  }
 }
 
 // ------------------------------------------------------------------ Ouro no ciclo
