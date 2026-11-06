@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Ouro · Commodities AUVP</title>
+<link rel="stylesheet" href="assets/estilo.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+</head>
+<body>
+<header class="site-topo">
+  <div class="site-topo-in">
+    <a class="site-nome" href="index.html"><span class="site-marca" aria-hidden="true">AUVP</span>Commodities</a>
+    <nav class="site-menu" aria-label="Seções do site">
+      <a href="index.html">Início</a>
+      <a href="petroleo.html">Petróleo</a>
+      <a href="vale.html">Vale</a>
+      <a href="ouro.html" aria-current="page">Ouro</a>
+    </nav>
+    <button class="botao" id="tema" type="button">Tema escuro</button>
+  </div>
+</header>
+<main class="pagina">
+  <div class="cabeca">
+    <h1>Ouro: caro contra o quê?</h1>
+    <p class="sub">O preço do ouro em dólar quase só sobe, então não há uma linha fixa de caro ou barato. Aqui ele é comparado com a bolsa, com o petróleo e com a própria tendência.</p>
+    <p class="meta" id="meta"></p>
+  </div>
+  <nav class="abas" role="tablist" aria-label="Partes da análise">
+    <button role="tab" type="button" data-aba="veredito" aria-controls="p-veredito">Veredito</button>
+    <button role="tab" type="button" data-aba="termometro" aria-controls="p-termometro">Termômetro</button>
+    <button role="tab" type="button" data-aba="ciclo" aria-controls="p-ciclo">Ouro no ciclo</button>
+    <button role="tab" type="button" data-aba="move" aria-controls="p-move">O que move o ouro</button>
+    <button role="tab" type="button" data-aba="mercado" aria-controls="p-mercado">Mercado</button>
+    <button role="tab" type="button" data-aba="bancos" aria-controls="p-bancos">Bancos centrais</button>
+    <button role="tab" type="button" data-aba="metodo" aria-controls="p-metodo">Como foi feito</button>
+  </nav>
+  <div id="aviso-chart" class="aviso" hidden>Os gráficos precisam de internet para carregar a biblioteca Chart.js. Sem ela, as tabelas trazem os mesmos números.</div>
+  <section class="painel" id="p-veredito" role="tabpanel"></section>
+  <section class="painel" id="p-termometro" role="tabpanel" hidden></section>
+  <section class="painel" id="p-ciclo" role="tabpanel" hidden></section>
+  <section class="painel" id="p-move" role="tabpanel" hidden></section>
+  <section class="painel" id="p-mercado" role="tabpanel" hidden></section>
+  <section class="painel" id="p-bancos" role="tabpanel" hidden></section>
+  <section class="painel" id="p-metodo" role="tabpanel" hidden></section>
+</main>
+<footer class="rodape">Análise da AUVP; não é recomendação de investimento. Fontes: Yahoo Finance, FRED/EIA, Federal Reserve, Banco Mundial (Pink Sheet), CFTC e FMI. Cálculos em R e Python; elaboração AUVP.</footer>
+<script src="dados/ouro.js"></script>
+<script src="assets/base.js"></script>
+<script src="assets/ouro.js"></script>
+</body>
+</html>
