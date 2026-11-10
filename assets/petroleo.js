@@ -2,9 +2,8 @@
 // Seção do Petróleo. Dados em dados/petroleo.js, gerados por gerar_site.py a partir dos Excel do projeto.
 const D = window.DADOS;
 const R = D.regra, H = D.hoje, V = D.vereditos;
-const estado = { placar: 'Petrobras', periodoBrent: '2000', fator: 'Petrobras', correl: '2019', serie: 'Bomba: gasolina (semanal)', evEmpresa: 'Ambas', evCategoria: '', res: 'Petrobras', resDesde: '2016', premio: 'Petrobras', altaAtivo: 'PETR4' };
-if (!D.inflacao.series.includes(estado.serie)) estado.serie = D.inflacao.series[0];
-const DATA_LEITURA = `Leitura escrita em 05/11/2026, com preços de 04/11/2026. Os números vêm dos dados; a interpretação não muda sozinha.`;
+const estado = { placar: 'Petrobras', periodoBrent: '2000', fator: 'Petrobras', correl: '2019', evEmpresa: 'Ambas', evCategoria: '', res: 'Petrobras', resDesde: '2016', premio: 'Petrobras', altaAtivo: 'PETR4' };
+const DATA_LEITURA = `Leitura revista em 09/11/2026, em dólar, com preços de 06/11/2026. Os números vêm dos dados; a interpretação não muda sozinha.`;
 const fmtFaixa = () => `US$ ${fmtN(R.piso, 1)}–${fmtN(R.teto, 1)}`;
 const titularMes = (l) => mesTxt(l) + (l === D.brent.parcial ? ' (parcial)' : '');
 
@@ -26,10 +25,10 @@ function cartaoVeredito(e) {
   return el('div', { class: 'veredito' },
     el('div', { class: 'veredito-topo' },
       el('div', { class: 'veredito-nome' }, el('span', { class: 'ponto', style: 'background:' + corEmpresa(e, C) }), `${e} (${v.ticker})`), selo(v.ver)),
-    el('div', { class: 'veredito-preco', text: fmtRS(v.preco) }),
+    el('div', { class: 'veredito-preco', text: fmtUS(v.preco) }),
     el('ul', {},
-      el('li', {}, el('span', { text: 'Queda desde o pico de 24 meses' }), el('strong', { text: fmtPct(v.queda_pico) })),
-      el('li', {}, el('span', { text: 'Preço de "lixo" (30% abaixo do pico)' }), el('strong', { text: `${fmtRS(v.preco_lixo)} (${fmtPct(v.falta_lixo)})` })),
+      el('li', {}, el('span', { text: 'Queda desde o pico de 24 meses' }), el('strong', { text: fmtPct(v.queda_pico, 1) })),
+      el('li', {}, el('span', { text: 'Preço de "lixo" (30% abaixo do pico)' }), el('strong', { text: `${fmtUS(v.preco_lixo)} (${fmtPct(v.falta_lixo, 1)})` })),
       el('li', {}, el('span', { text: 'Alta em 12 meses, com proventos' }), el('strong', { text: fmtPct(v.alta12) })),
       el('li', {}, el('span', { text: `Retorno além dos fatores em 12 meses (até ${v.descol_mes})` }), el('strong', { text: fmtPct(v.descol, 1) }))));
 }
@@ -42,8 +41,8 @@ function renderVeredito() {
   p.append(el('div', { class: 'grade-tiles' },
     H.brent >= R.corte ? tile('Para sair de CARA', `Brent < ${fmtUS(R.corte, 0)}`, `${fmtPct(dif(R.corte), 1)} do futuro de hoje. As duas viram NEUTRAS.`)
       : tile('Para virar CARA', `Brent ≥ ${fmtUS(R.corte, 0)}`, `${fmtPct(dif(R.corte), 1)} do futuro de hoje.`),
-    tile('Para virar BARATA', `Brent < ${fmtUS(R.piso, 1)}`, `${fmtPct(dif(R.piso), 1)} do futuro de hoje, e a ação no "lixo": PETR4 até ${fmtRS(V.Petrobras.preco_lixo)}, PRIO3 até ${fmtRS(V.Prio.preco_lixo)}.`),
-    tile('Dólar (PTAX)', fmtRS(H.ptax, 4), `Brent em reais: ${fmtRS(H.brent_rs, 0)} por barril`),
+    tile('Para virar BARATA', `Brent < ${fmtUS(R.piso, 1)}`, `${fmtPct(dif(R.piso), 1)} do futuro de hoje, e a ação no "lixo": PETR4 até ${fmtUS(V.Petrobras.preco_lixo)}, PRIO3 até ${fmtUS(V.Prio.preco_lixo)}.`),
+    tile('Dólar (PTAX)', fmtRS(H.ptax, 4), `Percentil ${fmtPct((D.caro.dolar.find((x) => x.janela === 'últimos 5 anos') || {}).pct, 0, false)} dos últimos 5 anos. É a cotação usada para passar as ações para dólar.`),
     tile('Brent acima do preço médio', fmtPct(H.brent / R.teto - 1), `Contra o teto de ${fmtUS(R.teto, 1)}, a mediana dos meses dos últimos 20 anos`)));
 
   const fx = (s) => D.caro.faixas.find((f) => f.empresa === 'Petrobras' && f.situacao === s) || {};
@@ -57,7 +56,7 @@ function renderVeredito() {
     caixaLer('Onde a regra é mais fraca', [[
       `O corte de ${fmtUS(R.corte, 0)} não está bem identificado: ao reamostrar a história, o melhor corte caiu em US$ 100 em ${fmtPct(ct(100), 0, false)} das vezes, em US$ 60 em ${fmtPct(ct(60), 0, false)} e em US$ 90 em só ${fmtPct(ct(90), 0, false)}.`,
       `O resultado ruim de comprar com Brent alto vem quase todo de 2008–2014. Em 2022 foi o contrário, por causa dos dividendos.`,
-      `P/L baixo com Brent de US$ 90 ou mais não mostrou armadilha de perda na PETR4: ${fmtPct(pl.retorno_24m)} em 24 meses, mas só ${fmtPct(pl.so_preco_24m)} de preço, em ${fmtInt(pl.trimestres)} trimestres.`,
+      `P/L baixo com Brent de US$ 90 ou mais não mostrou armadilha de perda na PETR4: ${fmtPct(pl.retorno_24m)} em 24 meses com proventos e ${fmtPct(pl.so_preco_24m)} só no preço, em ${fmtInt(pl.trimestres)} trimestres.`,
       `"No lixo" sozinho não basta: na PETR4, comprar de 30% a 50% abaixo do pico deu ${fmtPct(lx.r24)} em 24 meses. O que separa é o Brent.`,
       `Na PRIO3 nenhuma faixa de Brent teve retorno mediano negativo (de ${fmtPct(Math.min(...fxPrio.map((f) => f.r24)))} a ${fmtPct(Math.max(...fxPrio.map((f) => f.r24)))}), numa fase em que a produção só cresceu. As faixas altas têm um episódio só.`]], DATA_LEITURA, false)));
 
@@ -117,20 +116,12 @@ function renderBrent() {
     options: opcoesLinha(lab, (v) => 'US$ ' + fmtN(v, 0), { zero: true, passo: n > 200 ? 5 : n > 100 ? 2 : 1 }) },
     (v) => fmtUS(v), { mira: true, titulo: titularMes, rotuloX: 'Mês', rotulos: lab.map(titularMes) });
 
-  const bReais = D.inflacao.mensal.filter((x) => x.m >= (ini === '1987' ? '2000' : ini) + '-01'), lr = bReais.map((x) => x.m);
-  const d10 = D.caro.dolar.find((x) => x.janela === 'últimos 10 anos') || {};
-  const g2 = cartaoGrafico('g-brent-rs', 'Brent em reais, por barril', 'Brent à vista × dólar, média do mês, sem correção por inflação. A receita em reais sobe tanto com o petróleo quanto com o dólar.', 300);
-  const tabD = el('div', { class: 'cartao' }, cabecalho('Dólar e Brent em reais hoje', `Hoje: dólar ${fmtRS(H.ptax, 2)} e Brent de ${fmtRS(H.brent_rs, 0)} por barril.`),
-    tabelaOrdenavel([{ campo: 'janela', rotulo: 'Janela' }, { campo: 'media', rotulo: 'Dólar médio', num: true, fmt: (v) => fmtRS(v) }, { campo: 'pct', rotulo: 'Percentil do dólar', num: true, fmt: (v) => fmtPct(v, 0, false) },
-      { campo: 'br_media', rotulo: 'Brent em R$ médio', num: true, fmt: (v) => fmtRS(v, 0) }, { campo: 'br_pct', rotulo: 'Percentil do Brent em R$', num: true, fmt: (v) => fmtPct(v, 0, false) }], D.caro.dolar, { livre: true }),
-    el('p', { class: 'cartao-sub', style: 'margin-top:10px', text: `Com ${fmtPct(d10.br_pct, 0, false)} dos meses de 10 anos abaixo do Brent em reais de hoje, o lucro em reais também está alto, não só o em dólar.` }));
-  p.append(el('div', { class: 'linha dupla' }, g2, tabD));
-  desenhar(g2, { type: 'line', data: { labels: lr, datasets: [serie('Brent em reais', bReais.map((x) => x.rs), C.brent)] },
-    options: opcoesLinha(lr, (v) => 'R$ ' + fmtN(v, 0), { legenda: false, zero: true, passo: lr.length > 150 ? 5 : 2 }) }, (v) => fmtRS(v, 0), { mira: true, titulo: titularMes, rotuloX: 'Mês', rotulos: lr.map(titularMes) });
+  p.append(el('div', { class: 'cartao solto' }, cabecalho('Dólar hoje', `${fmtRS(H.ptax, 2)} por dólar. As ações desta página são medidas em dólar: com o dólar alto, o preço delas em dólar fica menor só pelo câmbio.`),
+    tabelaOrdenavel([{ campo: 'janela', rotulo: 'Janela' }, { campo: 'media', rotulo: 'Dólar médio', num: true, fmt: (v) => fmtRS(v) }, { campo: 'pct', rotulo: 'Percentil do dólar de hoje', num: true, fmt: (v) => fmtPct(v, 0, false) }], D.caro.dolar, { livre: true })));
 
   const mdata = (v) => (v ? mesAnoDeData(v) : 'não voltou');
   p.append(el('div', { class: 'linha dupla' },
-    el('div', { class: 'cartao' }, cabecalho('As vezes em que o Brent passou de US$ 100', 'Até voltar abaixo do teto do preço médio, na média do mês. Retorno das ações no período, com proventos.'),
+    el('div', { class: 'cartao' }, cabecalho('As vezes em que o Brent passou de US$ 100', 'Até voltar abaixo do teto do preço médio, na média do mês. Retorno das ações no período, em dólar, com proventos.'),
       tabelaOrdenavel([{ campo: 'inicio', rotulo: 'Passou de 100', fmt: mesAnoDeData }, { campo: 'maximo', rotulo: 'Máximo mensal', num: true, fmt: (v) => fmtUS(v, 0) }, { campo: 'volta', rotulo: 'Voltou em', fmt: mdata },
         { campo: 'meses', rotulo: 'Meses', num: true, fmt: fmtInt }, { campo: 'petr4', rotulo: 'PETR4', num: true, fmt: (v) => fmtPct(v) }, { campo: 'prio3', rotulo: 'PRIO3', num: true, fmt: (v) => fmtPct(v) }], D.caro.ep100, { livre: true })),
     el('div', { class: 'cartao' }, cabecalho('Depois de um Brent alto, o que aconteceu com ele', `"Até o teto" = chance de estar em ${fmtUS(R.teto, 1)} ou menos no horizonte. A volta costuma vir, mas até o preço médio é menos frequente.`),
@@ -147,8 +138,8 @@ function renderPremio() {
   const C = cores(), P = D.premio;
   const e4 = (e) => P.elo4.find((x) => x.empresa === e) || {}, e2 = (e) => P.elo2.find((x) => x.empresa === e) || {};
   const impl = (e, b) => P.implicito.find((x) => x.empresa === e && x.base === b) || {};
-  const faixaPrem = (e) => { const x = e4(e); return `${fmtN(Math.min(x.premio_pct_R_mensal, x.premio_pct_R_12m) * 100, 0)}% a ${fmtN(Math.max(x.premio_pct_R_mensal, x.premio_pct_R_12m) * 100, 0)}%`; };
-  const faixaPreco = (e) => { const x = e4(e); return `${fmtRS(Math.min(x.preco_brent_teto_beta_mensal, x.preco_brent_teto_beta_12m))} a ${fmtRS(Math.max(x.preco_brent_teto_beta_mensal, x.preco_brent_teto_beta_12m))}`; };
+  const faixaPrem = (e) => { const x = e4(e); return `${fmtN(Math.min(x.premio_pct_mensal, x.premio_pct_12m) * 100, 0)}% a ${fmtN(Math.max(x.premio_pct_mensal, x.premio_pct_12m) * 100, 0)}%`; };
+  const faixaPreco = (e) => { const x = e4(e); return `${fmtUS(Math.min(x.preco_brent_teto_beta_mensal, x.preco_brent_teto_beta_12m))} a ${fmtUS(Math.max(x.preco_brent_teto_beta_mensal, x.preco_brent_teto_beta_12m))}`; };
   p.append(caixaLer('A pergunta desta parte', [
     `Quanto do preço de hoje é efeito do Brent acima do normal? Com o Brent de ${fmtUS(H.brent)}, o lucro de um ano fica inflado (${fmtPct(e2('Petrobras').lucro_inflado, 0, false)} na Petrobras e ${fmtPct(e2('Prio').lucro_inflado, 0, false)} na Prio, contra o Brent no teto do preço médio), e parte disso está no preço das ações.`,
     `Cara contra o normal não quer dizer sobrevalorizada: o prêmio no preço fica perto do valor presente do caixa temporário que a alta do Brent traz.`]));
@@ -157,7 +148,7 @@ function renderPremio() {
       el('div', { class: 'veredito-topo' }, el('div', { class: 'veredito-nome' }, el('span', { class: 'ponto', style: 'background:' + corEmpresa(e, C) }), `${e} (${v.ticker})`)),
       el('div', { class: 'veredito-preco', text: faixaPrem(e) }), el('p', { class: 'cartao-sub', text: 'Prêmio do Brent no preço, pelos betas mensal e de 12 meses' }),
       el('ul', {},
-        el('li', {}, el('span', { text: `Preço com o Brent em ${fmtUS(R.teto, 1)} (hoje ${fmtRS(v.preco)})` }), el('strong', { text: faixaPreco(e) })),
+        el('li', {}, el('span', { text: `Preço com o Brent em ${fmtUS(R.teto, 1)} (hoje ${fmtUS(v.preco)})` }), el('strong', { text: faixaPreco(e) })),
         el('li', {}, el('span', { text: 'P/L no Brent de hoje → no teto do preço médio' }), el('strong', { text: `${fmtX(y.pl_brent_hoje)} → ${fmtX(y.pl_brent_teto)}` })),
         el('li', {}, el('span', { text: 'Prêmio em dinheiro × valor presente da alta temporária' }), el('strong', { text: `US$ ${fmtN(Math.min(x.premio_US_bi_mensal, x.premio_US_bi_12m), 1)}–${fmtN(Math.max(x.premio_US_bi_mensal, x.premio_US_bi_12m), 1)} bi × ${fmtN(x.vp_alta_temporaria_US_bi, 1)} bi` })),
         el('li', {}, el('span', { text: 'Brent que o preço de hoje embute (pelo P/L)' }), el('strong', { text: `${fmtUS(iP.brent_implicito, 0)} (IC ${fmtN(Math.max(iP.ic_baixo, 0), 0)}–${fmtN(iP.ic_alto, 0)})` })))); };
@@ -197,7 +188,7 @@ function renderPremio() {
   p.append(el('h2', { class: 'secao', text: 'Numa queda, qual cai menos?' }));
   const qd = (l) => l.janela === 'desde 2015';
   p.append(el('div', { class: 'linha dupla' },
-    el('div', { class: 'cartao' }, cabecalho('Nos dias de queda do Brent', 'Retorno médio de cada ação no dia. "PETR4 melhor" = % dos dias em que a PETR4 caiu menos; p = teste da diferença.'),
+    el('div', { class: 'cartao' }, cabecalho('Nos dias de queda do Brent', 'Retorno médio de cada ação no dia, em dólar. "PETR4 melhor" = % dos dias em que a PETR4 caiu menos; p = teste da diferença.'),
       tabelaOrdenavel([{ campo: 'situacao', rotulo: 'Situação' }, { campo: 'casos', rotulo: 'Dias', num: true, fmt: fmtInt }, { campo: 'p', rotulo: 'PETR4', num: true, fmt: (v) => fmtPct(v, 1) }, { campo: 'r', rotulo: 'PRIO3', num: true, fmt: (v) => fmtPct(v, 1) }, { campo: 'melhor', rotulo: 'PETR4 melhor', num: true, fmt: (v) => fmtPct(v, 0, false) }, { campo: 'pv', rotulo: 'p', num: true, fmt: fmtP }], D.queda.dias.filter(qd), { livre: true })),
     el('div', { class: 'cartao' }, cabecalho('Na queda de 3 meses e depois dela', 'Em meses a diferença some; a recuperação depois da queda foi maior na PRIO3, numa fase de produção crescente.'),
       tabelaOrdenavel([{ campo: 'situacao', rotulo: 'Situação' }, { campo: 'janela', rotulo: 'Janela' }, { campo: 'casos', rotulo: 'Casos', num: true, fmt: fmtInt }, { campo: 'p', rotulo: 'PETR4', num: true, fmt: (v) => fmtPct(v) }, { campo: 'r', rotulo: 'PRIO3', num: true, fmt: (v) => fmtPct(v) }, { campo: 'pv', rotulo: 'p', num: true, fmt: fmtP }], D.queda.tres, { livre: true }))));
@@ -205,7 +196,7 @@ function renderPremio() {
   p.append(el('h2', { class: 'secao', text: 'A alta das duas em números' }));
   const ativo = estado.altaAtivo;
   p.append(el('div', { class: 'filtros' }, el('div', { class: 'filtro' }, 'Ação', segmentoEmpresa(ativo, (v) => { estado.altaAtivo = v; renderPremio(); }, [['PETR4', 'PETR4'], ['PRIO3', 'PRIO3']]))));
-  const fmtAlta = (v, l) => { if (v == null) return '—'; if (/^Preço/.test(l.medida)) return fmtRS(v); if (/^Meses positivos/.test(l.medida)) return fmtInt(v); return fmtPct(v, 1); };
+  const fmtAlta = (v, l) => { if (v == null) return '—'; if (/^Preço/.test(l.medida)) return fmtUS(v); if (/^Meses positivos/.test(l.medida)) return fmtInt(v); return fmtPct(v, 1); };
   p.append(el('div', { class: 'cartao solto' }, tabelaOrdenavel([{ campo: 'medida', rotulo: 'Medida' }, { campo: 'valor', rotulo: 'Hoje', num: true, fmt: fmtAlta }, { campo: 'comp', rotulo: 'Comparação' }, { campo: 'z', rotulo: 'z', num: true, fmt: (v) => fmtN(v, 2) }, { campo: 'pct', rotulo: 'Percentil', num: true, fmt: (v) => fmtPct(v, 0, false) }, { campo: 'p', rotulo: 'p', num: true, fmt: fmtP }], D.alta.filter((x) => x.ativo === ativo), { livre: true })));
 
   p.append(el('h2', { class: 'secao', text: 'As fases de Brent alto da Petrobras' }));
@@ -357,80 +348,27 @@ function renderEventos() {
   } else g1.querySelector('.area').replaceChildren(el('p', { class: 'cartao-sub', text: 'Nenhuma categoria testável com este filtro.' }));
   const tS = el('div', { class: 'cartao' }, cabecalho('Sem sinal esperado: o mês foi mais agitado que o normal?', 'Choques do petróleo e de mercado já estão nos fatores. Razão acima de 1 = mês mais volátil que o normal.'),
     tabelaOrdenavel([{ campo: 'empresa', rotulo: 'Empresa' }, { campo: 'categoria', rotulo: 'Categoria' }, { campo: 'motivo', rotulo: 'Por que sem sinal' }, { campo: 'meses', rotulo: 'Meses', num: true, fmt: fmtInt }, { campo: 'razao', rotulo: 'Variância ÷ normal', num: true, fmt: (v) => fmtN(v, 2) }, { campo: 'p', rotulo: 'p', num: true, fmt: fmtP }], sem));
-  const tL = el('div', { class: 'cartao' }, cabecalho('Os eventos, um a um', 'Mês = primeiro pregão que absorve a notícia. O sinal esperado foi definido antes de olhar o preço e não muda pela reação.'),
+  const tL = el('div', { class: 'cartao' }, cabecalho('Os eventos, um a um', 'Mês = primeiro pregão que absorve a notícia. O sinal esperado foi definido antes de olhar o preço e não muda pela reação. Valores em dólar, pela PTAX do dia do evento; os anúncios originais são em reais.'),
     tabelaOrdenavel([{ campo: 'empresa', rotulo: 'Empresa' }, { campo: 'data', rotulo: 'Data', fmt: dataTxt }, { campo: 'categoria', rotulo: 'Categoria' }, { campo: 'sinal', rotulo: 'Sinal esperado' }, { campo: 'ar', rotulo: 'Anormal', num: true, fmt: (v) => fmtPct(v, 1) }, { campo: 'evento', rotulo: 'Evento' }], lis, { alta: true }));
   p.append(el('div', { class: 'linha dupla' }, tS, tL));
-}
-
-// ------------------------------------------------------------------ Brent × inflação
-const REGIMES = ['1. Preço administrado (até set/2016)', '2. Paridade de importação (out/2016–mai/2023)', '3. Nova política (desde jun/2023)', 'Todo o período'];
-const CURTO = { [REGIMES[0]]: 'Administrado', [REGIMES[1]]: 'Paridade (PPI)', [REGIMES[2]]: 'Nova política', [REGIMES[3]]: 'Todo o período' };
-function renderInflacao() {
-  const p = document.getElementById('p-inflacao'); p.replaceChildren();
-  const C = cores(), I = D.inflacao, Z = I.resumo;
-  p.append(el('div', { class: 'grade-tiles' },
-    tile('Brent em reais, à vista', fmtRS(Z.brent_rs, 0), `Média de ${Z.mes} até agora (${Z.pregoes} ${Z.pregoes === 1 ? 'pregão' : 'pregões'}). Pelo futuro de ${D.data_precos}: ${fmtRS(H.brent_rs, 0)}.`),
-    tile('Brent em reais desde jan/2000', fmtSinal(Z.brent_acum, 0) + '%', `IPCA no mesmo período: ${fmtSinal(Z.ipca_acum, 0)}%`)));
-  const m = I.mensal, lab = m.map((x) => x.m), ult = lab[lab.length - 1], titMes = (l) => mesTxt(l) + (l === ult ? ' (parcial)' : '');
-  const g2 = cartaoGrafico('g-base100i', 'Brent em reais × IPCA (jan/2000 = 100)', 'Comparação em um eixo só, sem corrigir o Brent pela inflação.');
-  const g3 = cartaoGrafico('g-bomba', `Bomba × Brent em reais, semana a semana (${I.bomba.base} = 100)`, 'Preço médio Brasil (ANP). Na mesma base, dá para ver o posto seguindo o petróleo com atraso.');
-  p.append(el('div', { class: 'linha' }, g2, g3));
-  desenhar(g2, { type: 'line', data: { labels: lab, datasets: [serie('Brent em R$', m.map((x) => x.b100), C.brent, { rotuloFinal: 'Brent em R$' }), serie('IPCA', m.map((x) => x.i100), C.s[0], { rotuloFinal: 'IPCA' })] },
-    options: opcoesLinha(lab, (v) => fmtN(v, 0), { rotulosFinais: true, padDir: 86, zero: true }) }, (v) => fmtN(v, 0), { mira: true, titulo: titMes, rotuloX: 'Mês', rotulos: lab.map(titMes) });
-  const b = I.bomba.linhas, lb = b.map((x) => x.d);
-  const fmtB = (v, ds, i) => (v == null ? '—' : fmtN(v, 0) + (ds.reais ? ' (' + ds.reais[i] + ')' : ''));
-  desenhar(g3, { type: 'line', data: { labels: lb, datasets: [
-      serie('Gasolina', b.map((x) => x.gas), C.s[0], { rotuloFinal: 'Gasolina', reais: b.map((x) => 'R$ ' + fmtN(x.gas_rs, 2) + '/l') }),
-      serie('Diesel S10', b.map((x) => x.s10), C.s[1], { rotuloFinal: 'Diesel S10', reais: b.map((x) => 'R$ ' + fmtN(x.s10_rs, 2) + '/l') }),
-      serie('Brent em R$', b.map((x) => x.brent), C.brent, { rotuloFinal: 'Brent em R$', reais: b.map((x) => 'R$ ' + fmtN(x.brent_rs, 0) + '/barril') })] },
-    options: opcoesLinha(lb, (v) => fmtN(v, 0), { rotulosFinais: true, padDir: 84, eixoX: eixoSemanal(lb, C) }) }, fmtB, { mira: true, titulo: (l) => 'Semana até ' + dataTxt(l), rotuloX: 'Semana', rotulos: lb.map(dataTxt) });
-  p.append(el('h2', { class: 'secao', text: 'Repasse: quanto da alta do Brent em reais chega aos preços, e em quanto tempo' }));
-  p.append(el('div', { class: 'cartao solto' }, cabecalho('Todas as séries e regimes de preço', 'Efeito acumulado de uma alta de 10% no Brent em reais: até 6 meses no IPCA, até 12 semanas na bomba. Meses de mudança de imposto entram com dummy. "Não significativo" = repasse total com p acima de 0,10.'),
-    tabelaOrdenavel([{ campo: 'serie', rotulo: 'Série' }, { campo: 'regime', rotulo: 'Regime de preço da Petrobras' }, { campo: 'ef10', rotulo: 'Efeito de +10% no Brent', num: true, fmt: (v) => fmtSinal(v, 2) + '%' }, { campo: 'p', rotulo: 'p', num: true, fmt: fmtP }, { campo: 'maior', rotulo: 'Maior efeito' }, { campo: 'metade', rotulo: 'Metade do repasse' }, { campo: 'obs', rotulo: 'Observações', num: true, fmt: fmtInt }], I.repasse_resumo)));
-  const sel = el('select');
-  I.series.forEach((s) => sel.append(el('option', { value: s, text: s })));
-  sel.value = estado.serie;
-  p.append(el('div', { class: 'filtros' }, el('label', { class: 'filtro' }, 'Série do gráfico e da leitura abaixo', sel)));
-  const g4 = cartaoGrafico('g-repasse', '', '', 320), leitura = el('div', { class: 'ler' });
-  p.append(el('div', { class: 'linha dupla' }, g4, leitura));
-  const desenharRepasse = () => {
-    const ls = I.repasse.filter((r) => r.serie === estado.serie), ks = [...new Set(ls.map((r) => r.k))].sort((a, b) => a - b), labs = ks.map(String);
-    const unid = ls.length ? ls[0].unid : 'semanas', um = unid === 'meses' ? 'mês' : 'semana';
-    g4.querySelector('h3').textContent = `${estado.serie}: quanto de +10% no Brent em reais já chegou ao preço`;
-    g4.querySelector('.cartao-sub').textContent = `Efeito acumulado até cada defasagem (${unid} depois da alta), por regime de preço da Petrobras.`;
-    const dss = REGIMES.filter((rg) => ls.some((r) => r.regime === rg)).map((rg) => { const dados = ks.map((k) => { const r = ls.find((x) => x.regime === rg && x.k === k); return r ? r.ef : null; });
-      return rg === 'Todo o período' ? serie(rg, dados, C.ref, { borderDash: [6, 4], borderWidth: 1.5, rotuloFinal: CURTO[rg] }) : serie(rg, dados, C.s[REGIMES.indexOf(rg)], { rotuloFinal: CURTO[rg] }); });
-    const titulo = (l) => (l === '0' ? (unid === 'meses' ? 'No mesmo mês da alta' : 'Na mesma semana da alta') : `${l} ${l === '1' ? um : unid} depois`);
-    desenhar(g4, { type: 'line', data: { labels: labs, datasets: dss }, options: opcoesLinha(labs, (v) => fmtN(v, 1) + '%', { rotulosFinais: true, padDir: 104, zero: true, tituloY: '% acumulado no preço',
-        eixoX: { grid: { display: false }, border: { color: C.base }, ticks: { color: C.texto3 }, title: { display: true, text: `${unid} depois da alta do Brent`, color: C.texto3 } } }) },
-      (v) => (v == null ? '—' : fmtSinal(v, 2) + '%'), { mira: true, titulo, rotuloX: unid + ' depois', rotulos: labs.map(titulo) });
-    const res = I.repasse_resumo.filter((r) => r.serie === estado.serie), lista = el('ul');
-    REGIMES.forEach((rg) => { const r = res.find((x) => x.regime === rg); if (!r) return; const q = r.maior === 'não significativo' ? 'repasse não significativo' : `maior efeito ${r.maior}; metade do repasse ${r.metade}`;
-      lista.append(el('li', { text: `${CURTO[rg]}: ${fmtSinal(r.ef10, 2)}% no total (p ${fmtP(r.p)}); ${q}.` })); });
-    leitura.replaceChildren(el('h3', { text: 'Leitura da série escolhida' }), lista,
-      el('p', { text: 'Os três regimes são as fases da política de preços da Petrobras: até set/2016 o governo segurava os preços; de out/2016 a mai/2023 a empresa seguia a paridade de importação; desde jun/2023 ela suaviza os repasses.' }),
-      el('p', { text: 'O posto demora porque o reajuste passa pela refinaria, pela distribuidora e pelos estoques do posto, e a Petrobras reajusta em degraus.' }));
-  };
-  sel.onchange = () => { estado.serie = sel.value; desenharRepasse(); };
-  desenharRepasse();
 }
 
 // ------------------------------------------------------------------ Resultados
 function renderResultados() {
   const p = document.getElementById('p-resultados'); p.replaceChildren();
   const C = cores(), e = estado.res, tk = V[e].ticker, tudo = D.resultados[e];
-  p.append(el('div', { class: 'aviso', text: `Só informação: o veredito não depende destes números. Último trimestre na base: ${D.ultimo_tri[e]}. EBITDA e margem ficam de fora da leitura, pela regra da commodity.` }));
+  p.append(el('div', { class: 'aviso', text: `Só informação: o veredito não depende destes números. Último trimestre na base: ${D.ultimo_tri[e]}. Em dólar: fluxos pelo dólar médio de cada trimestre; dívida e valor de mercado pelo dólar do fim do trimestre. EBITDA e margem ficam de fora da leitura, pela regra da commodity.` }));
   p.append(el('div', { class: 'filtros' }, el('div', { class: 'filtro' }, 'Empresa', segmentoEmpresa(e, (v) => { estado.res = v; renderResultados(); })),
     el('div', { class: 'filtro' }, 'Desde', segmentoEmpresa(estado.resDesde, (v) => { estado.resDesde = v; renderResultados(); }, [['2011', '2011'], ['2016', '2016'], ['2019', '2019'], ['2022', '2022']]))));
   const ano = (x) => 2000 + +x.p.slice(-2), ls = tudo.filter((x) => ano(x) >= +estado.resDesde), lab = ls.map((x) => x.p), u = tudo[tudo.length - 1];
-  const bi = (x) => (x == null ? null : x / 1000), fB = (v) => (v == null ? '—' : 'R$ ' + fmtN(v, 1) + ' bi');
+  const bi = (x) => (x == null ? null : x / 1000), fB = (v) => (v == null ? '—' : 'US$ ' + fmtN(v, 1) + ' bi');
   p.append(el('div', { class: 'grade-tiles' },
     tile('Lucro em 12 meses', fB(bi(u.lucro)), `Até ${u.p}`), tile('Caixa das operações em 12 meses', fB(bi(u.fco)), `Investimento: ${fB(bi(u.capex))}`),
     tile('Dívida líquida', fB(bi(u.divliq)), `Valor de mercado no fim do trimestre: ${fB(bi(u.vm))}`), tile('Produção', `${fmtN(u.prod, 0)} mil boe/d`, `Custo de extração: ${fmtUS(u.lifting)} por barril`)));
   const op = (f) => opcoesLinha(lab, f, { rotulosFinais: true, padDir: 84, eixoX: eixoAnos(lab, C) });
-  const g1 = cartaoGrafico('g-res1', `${tk}: receita e lucro em 12 meses`, 'Em R$ bilhões, soma dos últimos 4 trimestres.');
-  const g2 = cartaoGrafico('g-res2', `${tk}: caixa, investimento e dividendos em 12 meses`, 'Em R$ bilhões, soma dos últimos 4 trimestres.');
-  const g3 = cartaoGrafico('g-res3', `${tk}: dívida líquida`, 'Em R$ bilhões, no fim do trimestre.');
+  const g1 = cartaoGrafico('g-res1', `${tk}: receita e lucro em 12 meses`, 'Em US$ bilhões, soma dos últimos 4 trimestres.');
+  const g2 = cartaoGrafico('g-res2', `${tk}: caixa, investimento e dividendos em 12 meses`, 'Em US$ bilhões, soma dos últimos 4 trimestres.');
+  const g3 = cartaoGrafico('g-res3', `${tk}: dívida líquida`, 'Em US$ bilhões, no fim do trimestre.');
   const g4 = cartaoGrafico('g-res4', `${tk}: por barril`, e === 'Prio' ? 'Em US$. Custo de extração, preço de venda e Brent médio do trimestre.' : 'Em US$. Custo de extração e Brent médio do trimestre.');
   const g5 = cartaoGrafico('g-res5', `${tk}: Brent de equilíbrio estimado`, 'Estimativa própria em 12 meses: Brent médio menos o fluxo de caixa livre por barril. É o Brent em que o caixa livre zeraria.');
   p.append(el('div', { class: 'linha' }, g1, g2, g3));
@@ -453,19 +391,19 @@ function renderMetodo() {
       `CARA: Brent de ${fmtUS(R.corte, 0)} ou mais. O corte foi testado nos dados e está em R\\testar_regra_brent.R.`,
       `BARATA: Brent abaixo de ${fmtUS(R.piso, 1)} e a ação 30% ou mais abaixo do pico de 24 meses.`, 'NEUTRA: qualquer outro caso.',
       `Preço médio de ${fmtFaixa()}: as medianas dos meses dos últimos 10 e 20 anos, recalculadas a cada atualização.`,
-      'Brent em dólar nominal, sem correção pela inflação. EBITDA, margem e múltiplos ficam só como informação.']], null, false),
+      'Tudo em dólar: ações convertidas pela PTAX do dia e Brent nominal, sem correção pela inflação. EBITDA, margem e múltiplos ficam só como informação.']], null, false),
     caixaLer('Dados', [[
       'Ações e Brent futuro: Yahoo Finance (PETR4, PRIO3, BZ=F), com proventos quando indicado.', 'Brent à vista: FRED/EIA. Dólar PTAX, Selic e IPCA: Banco Central. IPCA por item: IBGE.',
       'Balanços: CVM (ITR e DFP), releases da Petrobras e Guia de Valuation da Prio. Bomba e produção: ANP.', 'Juros: Tesouro Direto e FRED. Risco: Ipeadata (EMBI+). Petroleiras do mundo: Yahoo Finance.',
       'Eventos: datas conferidas em fontes primárias (CVM, fatos relevantes, imprensa).']], null, false),
     caixaLer('Como os testes foram feitos', [[
-      'Compras: último pregão de cada mês; retorno em 12 e 24 meses (252 e 504 pregões), com proventos.', 'Janelas independentes: contagem de períodos que não se sobrepõem, para não superestimar a evidência.',
+      'Compras: último pregão de cada mês; retorno em dólar em 12 e 24 meses (252 e 504 pregões), com proventos.', 'Janelas independentes: contagem de períodos que não se sobrepõem, para não superestimar a evidência.',
       'Modelo de fatores: retorno mensal em dólar contra 10 candidatos, com eliminação passo a passo e erro-padrão robusto (Newey-West). Teste fora da amostra refeito só com os dados até 2022.',
       'Eventos: retorno anormal = resíduo do modelo; sinal esperado definido antes de olhar o preço.', 'Prêmio: efeito no preço do Brent voltar ao teto do preço médio, pelos betas mensal e de 12 meses.']], null, false),
     caixaLer('Cuidados na leitura', [[
       `As contas de "Brent no ciclo" usam só meses completos; ${D.brent.parcial ? mesTxt(D.brent.parcial) + ' aparece no gráfico como mês parcial.' : 'não há mês parcial agora.'}`,
       'O Brent à vista é publicado com atraso, e o futuro é o preço que decide o veredito. Em contratos perto do vencimento os dois podem ficar bem diferentes.',
-      'Poucos episódios independentes: os intervalos de confiança são largos.', 'Os dados do Brent em reais aqui não são corrigidos pelo IPCA; o Power BI ainda tem essa versão corrigida.',
+      'Poucos episódios independentes: os intervalos de confiança são largos.', 'Em dólar, o retorno da ação mistura a empresa e o câmbio. A PTAX sai por volta das 13h e a bolsa fecha no fim da tarde, então o retorno de um dia tem um pequeno descasamento.', 'A análise de Brent e inflação continua no Power BI.',
       'Só entram empresas que existem hoje (viés de sobrevivência). Relação estatística não é causa.', 'Não é recomendação de investimento.']], null, false)));
   p.append(el('h2', { class: 'secao', text: 'Roteiro para repetir a análise' }));
   p.append(el('div', { class: 'cartao solto' }, tabelaOrdenavel([{ campo: 'passo', rotulo: 'Passo' }, { campo: 'pergunta', rotulo: 'Pergunta' }, { campo: 'como', rotulo: 'Como medir' }, { campo: 'regra', rotulo: 'Regra de leitura' }], D.caro.roteiro, { livre: true })));
@@ -473,7 +411,7 @@ function renderMetodo() {
 
 // ------------------------------------------------------------------ abas e início
 let abaAtual = 'veredito', feitas = {};
-const RENDER = { veredito: renderVeredito, brent: renderBrent, premio: renderPremio, fatores: renderFatores, eventos: renderEventos, inflacao: renderInflacao, resultados: renderResultados, metodo: renderMetodo };
+const RENDER = { veredito: renderVeredito, brent: renderBrent, premio: renderPremio, fatores: renderFatores, eventos: renderEventos, resultados: renderResultados, metodo: renderMetodo };
 function mostrar(aba) {
   abaAtual = aba;
   document.querySelectorAll('[role="tab"]').forEach((b) => b.setAttribute('aria-selected', b.dataset.aba === aba ? 'true' : 'false'));
@@ -482,7 +420,7 @@ function mostrar(aba) {
   try { history.replaceState(null, '', '#' + aba); } catch (e) { /* arquivo aberto em modo restrito: segue sem o endereço */ }
 }
 document.querySelectorAll('[role="tab"]').forEach((b) => b.addEventListener('click', () => mostrar(b.dataset.aba)));
-document.getElementById('meta').textContent = `Preços de ${D.data_precos} · balanços até ${D.ultimo_tri.Petrobras} · gerado em ${D.gerado}`;
+document.getElementById('meta').textContent = `Preços de ${D.data_precos} · tudo em dólar · balanços até ${D.ultimo_tri.Petrobras} · gerado em ${D.gerado}`;
 if (!TEM_CHART) document.getElementById('aviso-chart').hidden = false;
 iniciarTema(() => { feitas = {}; mostrar(abaAtual); });
 const abaInicial = (location.hash || '').replace('#', '');

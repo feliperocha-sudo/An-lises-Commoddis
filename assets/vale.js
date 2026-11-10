@@ -4,7 +4,8 @@ const D = window.DADOS;
 const R = D.regra, H = D.hoje, V = D.vale, T = D.teste;
 const ANO_INI = 2006, ANO_FIM = +D.data_precos.slice(-4);
 const estado = { de: ANO_INI, ate: ANO_FIM, indicador: D.indicadores[0].nome, indTipo: 'Trimestral', ativo: 'Minério', sensTipo: 'Anual' };
-const DATA_LEITURA = `Leitura escrita em 06/11/2026, com preços de 05/11/2026. Os números vêm dos dados; a interpretação não muda sozinha.`;
+const DATA_LEITURA = `Leitura escrita em 09/11/2026, com preços de 06/11/2026. Os números vêm dos dados; a interpretação não muda sozinha.`;
+const E = D.estudo;   // estudo do relatório "Análise de Ciclo - Vale": piso de cada época, compras de 2011 a 2024 (números fixos, preços de E.data)
 const fmtFaixa = () => `US$ ${fmtN(R.piso, 1)}–${fmtN(R.teto, 1)}`;
 
 // ------------------------------------------------------------------ período: um só para todos os gráficos; cada aba usa os anos que tem de dados
@@ -50,35 +51,38 @@ function cartaoVeredito() {
 function renderVeredito() {
   const p = document.getElementById('p-veredito'); p.replaceChildren();
   p.append(el('div', { class: 'linha dupla', style: 'margin-bottom:16px' }, cartaoVeredito(),
-    el('div', { class: 'cartao' }, cabecalho('Onde o minério está na régua', `A regra olha o minério de 62% de ferro no dia dos preços (${D.data_precos}), em dólar nominal. Corte de CARA: ${fmtUS(R.corte, 0)}, escolhido pelo analista depois do teste.`), reguaMinerio())));
+    el('div', { class: 'cartao' }, cabecalho('Onde o minério está na régua', `A regra olha o minério de 62% de ferro no dia dos preços (${D.data_precos}), em dólar nominal. Corte de CARA, que indica não alocar: ${fmtUS(R.corte, 0)}, escolhido pelo analista depois do teste.`), reguaMinerio())));
   const dif = R.corte / H.minerio - 1;
   p.append(el('div', { class: 'grade-tiles' },
     H.minerio >= R.corte ? tile('Para sair de CARA', `Minério < ${fmtUS(R.corte, 0)}`, `${fmtPct(dif, 1)} do minério de hoje.`)
-      : tile('Para virar CARA', `Minério ≥ ${fmtUS(R.corte, 0)}`, `${fmtPct(dif, 1)} do minério de hoje.`),
+      : tile('Para virar CARA (não alocar)', `Minério ≥ ${fmtUS(R.corte, 0)}`, `${fmtPct(dif, 1)} do minério de hoje.`),
     V.ver === 'BARATA' ? tile('Para deixar de ser BARATA', `VALE3 > ${fmtRS(V.preco_lixo_rs)}`, `${fmtUS(V.preco_lixo)} com o dólar de hoje; ${fmtPct(V.falta_lixo, 1)} do preço de hoje, ou minério de ${fmtUS(R.piso, 1)} ou mais (${fmtPct(R.piso / H.minerio - 1, 1)}).`)
       : H.minerio < R.piso ? tile('Para virar BARATA', `VALE3 ≤ ${fmtRS(V.preco_lixo_rs)}`, `${fmtUS(V.preco_lixo)} com o dólar de hoje; ${fmtPct(V.falta_lixo, 1)} do preço de hoje, com o minério abaixo de ${fmtUS(R.piso, 1)}.`)
       : tile('Para virar BARATA', `Minério < ${fmtUS(R.piso, 1)}`, `${fmtPct(R.piso / H.minerio - 1, 1)} do minério de hoje, e a ação no "lixo": até ${fmtRS(V.preco_lixo_rs)} com o dólar de hoje.`),
     tile('Minério contra o preço médio', fmtPct(H.minerio / R.piso - 1, 1), `Contra o piso de ${fmtUS(R.piso, 1)}; ${fmtPct(V.meses_minerio_maior, 0, false)} dos meses desde 2006 tiveram minério mais alto que hoje`)));
 
-  const par = (n) => T.parecido.find((x) => x.situacao === n) || {};
-  const pc = D.caro.pontos.find((x) => x.ponto === R.corte) || {}, zona = (f) => T.zonas.find((z) => z.faixa === f) || {};
-  const freq = T.melhor_corte.filter((x) => x.corte >= 90 && x.corte <= 110).reduce((s, x) => s + x.freq, 0);
-  const ruim14 = T.meses_parecidos.filter((x) => x.mes.startsWith('2014')), bom19 = T.meses_parecidos.filter((x) => x.mes >= '2019' && x.mes < '2021');
-  const G = T.ganhos_corte, N = T.perdas_neutra, faixaG = G.length ? `de ${fmtPct(Math.min(...G.map((x) => x.r24)))} a ${fmtPct(Math.max(...G.map((x) => x.r24)))}` : '—';
-  const con = D.caro.conclusao;
+  // forte ou fraca, como no relatório: forte com o minério abaixo de US$ 80 ou acima da própria média de 12 meses
+  const ult12 = D.minerio.mensal.slice(-12).map((x) => x.v), media12 = ult12.reduce((s, v) => s + v, 0) / ult12.length;
+  const forte = H.minerio < 80 || H.minerio > media12;
+  const sit = (n) => E.situacoes.find((x) => x.nome === n) || {}, fh = E.faixa_hoje;
+  const con = D.caro.conclusao, achar = (ini) => con.find((t) => t.startsWith(ini));
+  const cara = sit('CARA (não alocar)'), tip = sit('Compra típica'), bar = sit('BARATA');
   p.append(el('div', { class: 'linha dupla' },
-    caixaLer('Conclusão', [con[1], con[5], con[con.length - 2], con[con.length - 1], 'Este texto sai das regras do Excel "Caro ou barato - VALE3" e muda sozinho com os preços.'], null, false),
-    caixaLer('Onde a regra é mais fraca', [[
-      `O corte de ${fmtUS(R.corte, 0)} foi escolhido olhando esta mesma história e é uma região, não um número exato: os dados apontam de US$ 125 a 140. Ao reamostrar a história, a maior virada do retorno fica antes, perto do preço médio: entre US$ 90 e 110 em ${fmtPct(freq, 0, false)} das vezes.`,
-      (() => { const zr = (rec) => (T.zonas_recortes || []).find((z) => z.recorte === rec && z.faixa === 'teto ao corte') || {};   // revisão de 06/11: a perda da faixa neutra vem de 2010–13
-        return `A faixa neutra (do teto ao corte) só perdeu por causa das compras de 2010–13: na história toda, ${fmtPct(zona('teto ao corte').r24)} em 24 meses (${fmtPct(zona('teto ao corte').ganhou, 0, false)} ganharam); sem 2010–13, ${fmtPct(zr('sem 2010–13').r24)} (${fmtPct(zr('sem 2010–13').ganhou, 0, false)}); desde 2014, ${fmtPct(zr('desde 2014').r24)} (${fmtPct(zr('desde 2014').ganhou, 0, false)}).`; })(),
-      `A perda forte vem das compras de 2010–13. Sem elas, de ${fmtUS(R.corte, 0)} para cima a mediana em 24 meses fica em ${fmtPct(pc.r24_sem, 1)}; desde 2014, em ${fmtPct(pc.r24_d14, 1)}, com só ${fmtInt(pc.n_d14)} meses de compra. Ainda assim, ${fmtPct(pc.perdeu_sem, 0, false)} e ${fmtPct(pc.perdeu_d14, 0, false)} das compras perderam.`,
-      `São poucos episódios: ${fmtInt(pc.janelas)} janelas independentes de ${fmtUS(R.corte, 0)} para cima. E há exceções: desde 2020, ${fmtInt(G.length)} compras nessa faixa ganharam (${faixaG}), com ajuda dos dividendos.`,
-      `A faixa neutra também teve perdas sem aviso: comprar de 12/2022 a 03/2023, com minério de ${fmtUS(N.ore_min, 0)} a ${N.ore_max.toFixed(0)}, deu de ${fmtPct(N.r_min)} a ${fmtPct(N.r_max)} em 24 meses.`,
-      `O corte é um número fixo em dólar nominal: vale revisar quando os custos mudarem de patamar. O break-even de caixa está em ${fmtUS(D.margem.niveis.find((x) => x.chave === 'break_even').custo, 1)} (${D.margem.tri}).`,
-      `${V.ver === 'BARATA' ? 'O veredito de hoje está na faixa mais fraca da regra. ' : ''}BARATA é forte com o minério abaixo de US$ 80 (${fmtPct(par('minério abaixo de US$ 80, ação no lixo').r24)}, mas só ${fmtInt(par('minério abaixo de US$ 80, ação no lixo').janelas)} janelas independentes). De US$ 80 ao piso, com a ação no lixo, foi ${fmtPct(par('minério de US$ 80 ao piso, ação no lixo').r24)}. Em meses parecidos com hoje, os de 2014 deram de ${fmtPct(Math.min(...ruim14.map((x) => x.r24)))} a ${fmtPct(Math.max(...ruim14.map((x) => x.r24)))}, porque o minério seguiu caindo; os de 2019–20, de ${fmtPct(Math.min(...bom19.map((x) => x.r24)))} a ${fmtPct(Math.max(...bom19.map((x) => x.r24)))}.`,
-      `Em dólar, parte da queda vem do câmbio: desde o pico de ${dataTxt(V.pico_data)}, a cotação do dólar subiu ${fmtPct(V.cotacao_desde_pico, 1, false)}. O veredito pode mudar sem a ação se mexer na bolsa.`,
-      `Crise da própria empresa a regra não vê: em Brumadinho a ação caiu com o minério subindo.`]], DATA_LEITURA, false)));
+    caixaLer('Conclusão', [
+      achar('Veredito:') + (V.ver === 'BARATA' ? ` Pela régua, a BARATA de hoje é ${forte ? 'forte' : 'fraca'}: o minério está ${H.minerio < 80 ? 'abaixo de US$ 80' : (H.minerio > media12 ? 'acima' : 'abaixo') + ` da própria média de 12 meses (${fmtUS(media12, 1)})`}.` : ''),
+      ...(V.ver === 'BARATA' && !forte ? ['Na nossa leitura, a ação está barata, mas o desconto no minério é pequeno, e o resultado depende de o minério parar de cair.'] : []),
+      `No estudo de ${E.data}, com compras de 2011 a 2024, a CARA, que indica não alocar, rendeu ${fmtPct(cara.r24, 1)} em 24 meses, com ${fmtPct(cara.ganhou, 1, false)} das compras ganhando. A compra típica rendeu ${fmtPct(tip.r24, 1)}, e a BARATA, ${fmtPct(bar.r24, 1)}, com ${fmtPct(bar.ganhou, 1, false)} ganhando, mas com margem de erro de ${fmtPct(bar.ic[0], 1)} a ${fmtPct(bar.ic[1], 1)}.`,
+      `Com o minério de US$ 80 a 102,1 e a ação no lixo, o nível de hoje, as compras renderam ${fmtPct(fh.r2, 1)} em 2 anos e ${fmtPct(fh.r5, 1)} em 5 anos, com ${fmtPct(fh.g5, 1, false)} no lucro nesse prazo (compra típica: ${fmtPct(fh.tipica_r5, 1)} e ${fmtPct(fh.tipica_g5, 1, false)}).`,
+      achar('Deixa de ser'), achar('Riscos'),
+      `Veredito e preços mudam sozinhos com os preços; os números do estudo são de ${E.data}. A aba "Estudo de ciclo" traz os gráficos do relatório.`].filter(Boolean), null, false),
+    caixaLer('Onde a análise pode errar', [[
+      'Volta à média, mas não para um ponto fixo: o minério volta para perto da média, mas a média se move. Em dezembro de 2015, ele chegou a US$ 39,1 com o piso da época em US$ 119,9.',
+      'Poucos episódios: a CARA e a BARATA têm 4 janelas independentes cada uma, e a BARATA forte e a fraca são, cada uma, quase um episódio só. Por isso a margem de erro da BARATA é larga.',
+      'Escolha do piso: com o piso de cada época, a BARATA rendeu +65% em 24 meses; com a média fixa de hoje, +101%. O primeiro é pessimista, porque em 2012–14 só havia dados do auge; o segundo é otimista, porque em 2012 ninguém conhecia o piso de hoje.',
+      `Corte escolhido com a história: o corte de ${fmtUS(R.corte, 0)} foi escolhido depois de olhar todo o período e é uma referência de fase alta do ciclo, não um número exato. Vale revisar se os custos mudarem de patamar; o break-even de caixa está em ${fmtUS(D.margem.niveis.find((x) => x.chave === 'break_even').custo, 1)} (${D.margem.tri}).`,
+      `Câmbio: a análise é em dólar. Desde o pico de ${dataTxt(V.pico_data)}, a cotação do dólar subiu ${fmtPct(V.cotacao_desde_pico, 1, false)}, e o veredito pode mudar sem a ação se mexer na bolsa.`,
+      'Oferta e demanda fora do estudo: a análise supõe que o minério volta para perto da média, mas não analisa a oferta nova, como Simandou, nem a demanda de aço da China.',
+      'Crise da própria empresa a regra não vê: em Brumadinho a ação caiu com o minério subindo.']], DATA_LEITURA, false)));
 
   p.append(el('h2', { class: 'secao', text: 'Placar: cada lente da análise' }));
   p.append(el('div', { class: 'cartao solto' }, tabelaOrdenavel([{ campo: 'lente', rotulo: 'Lente' }, { campo: 'indicador', rotulo: 'Indicador' }, { campo: 'hoje', rotulo: 'Hoje' },
@@ -287,7 +291,8 @@ function renderMetodo() {
       'Indicadores, custos e sensibilidade: relatório de indicadores históricos da Vale e cálculos da AUVP.']], null, false),
     caixaLer('Como os testes foram feitos', [[
       'Compras: último pregão de cada mês, desde 2006; retorno em 12 e 24 meses (252 e 504 pregões), em dólar, com proventos.', 'Janelas independentes: contagem de períodos que não se sobrepõem, para não superestimar a evidência.',
-      'Bootstrap por blocos de 24 meses: refaz a história 2.000 vezes para ver quanto a mediana e o melhor corte mudam.', 'Recortes: repete a conta sem 2007–08, sem 2010–13, sem 2021–22, só desde 2014 e sem as janelas que cruzam Mariana ou Brumadinho.']], null, false),
+      'Bootstrap por blocos de 24 meses: refaz a história 2.000 vezes para ver quanto a mediana e o melhor corte mudam.',
+      `Estudo de ciclo (aba própria, preços de ${E.data}): piso de cada época, só com o que se sabia em cada mês; compras de 2011 a 2024; retornos em 6 meses e 1, 2, 3 e 5 anos; margem de erro com 10 mil sorteios de blocos de 24 meses.`,'Recortes: repete a conta sem 2007–08, sem 2010–13, sem 2021–22, só desde 2014 e sem as janelas que cruzam Mariana ou Brumadinho.']], null, false),
     caixaLer('Cuidados na leitura', [[
       'Na Pink Sheet, até 2005 o valor é o preço anual de contrato (Carajás, em centavos por unidade de ferro); de 2006 a 11/2008, preço à vista de 63,5% de ferro; desde 12/2008, 62%. Por isso o teste das compras começa em 2006.',
       'O contrato do Yahoo liquida pela média do mês: no começo do mês ele dá um salto, e o último dia do mês fica perto da média mensal.', 'O Yahoo só traz proventos da VALE3 desde 04/2008: as compras de 2006–08 estão um pouco subestimadas.',
@@ -305,9 +310,62 @@ function renderMetodo() {
   p.append(el('div', { class: 'cartao solto' }, tabelaOrdenavel([{ campo: 'passo', rotulo: 'Passo' }, { campo: 'pergunta', rotulo: 'Pergunta' }, { campo: 'como', rotulo: 'Como medir' }, { campo: 'regra', rotulo: 'Regra de leitura' }], D.caro.roteiro, { livre: true })));
 }
 
+// ------------------------------------------------------------------ Estudo de ciclo: os gráficos e as tabelas do relatório (preços de E.data; números fixos)
+function figuraEstudo(arq, alt, textos) {
+  return el('figure', { class: 'cartao solto estudo-fig' },
+    el('img', { src: `assets/estudo_vale/${arq}.webp`, alt, loading: 'lazy', style: 'display:block;width:100%;height:auto;border-radius:8px;background:#fff;margin-bottom:10px' }),   // estilo aqui também: o estilo.css pode vir do cache
+    ...textos.map((t) => el('p', { class: 'cartao-sub', text: t })));
+}
+function renderEstudo() {
+  const p = document.getElementById('p-estudo'); p.replaceChildren();
+  const fh = E.faixa_hoje, pctUm = (v) => fmtPct(v, 1), pctZ = (v) => fmtPct(v, 0);
+  p.append(caixaLer('O estudo do relatório', [
+    `São os gráficos do relatório "Análise de Ciclo - Vale", com preços de ${E.data}. Os números são fixos: mudam só quando o relatório for refeito.`,
+    'O estudo aplica a régua com o piso de cada época: em cada mês, o preço médio é a mediana dos 10 anos anteriores, só com o que se sabia naquele dia. As compras são feitas no último pregão de cada mês, de 2011 a 2024, em dólar e com proventos. As outras abas usam o preço médio de hoje e compras desde 2006, por isso alguns números diferem.',
+    [`CARA (minério de ${fmtUS(R.corte, 0)} ou mais) indica não alocar. BARATA (minério abaixo do piso e ação 30% ou mais abaixo do pico de 24 meses) indica oportunidade de alocação. NEUTRA: os outros casos.`,
+      'BARATA forte: minério abaixo de US$ 80 ou acima da própria média de 12 meses. BARATA fraca: as demais.',
+      'Compra típica: comprar em um mês qualquer, sem olhar o minério nem o preço. É a base de comparação.']], null));
+
+  p.append(el('h2', { class: 'secao', text: 'Todos os períodos de CARA e de BARATA' }));
+  p.append(figuraEstudo('periodos', 'VALE3 e minério de 2006 a 2026, com as faixas de CARA e de BARATA e o resultado de cada compra em 24 meses',
+    ['CARA: 56 de 67 compras caíram em 24 meses desde 2006. BARATA: de 2012 a 2014, 18 de 19 compras caíram, porque o piso da época, de cerca de US$ 130, vinha só do auge e o minério seguiu caindo até US$ 39,1; as 22 compras de 2015 e 2016 e as 4 de 2019 e 2020 subiram todas.']));
+
+  p.append(el('h2', { class: 'secao', text: 'O que deu comprar em cada situação' }));
+  p.append(figuraEstudo('situacoes', 'Retorno mediano em 24 meses e compras que ganharam, por situação, com a BARATA forte e a fraca',
+    ['A BARATA forte rendeu +140,8% em 24 meses, e a fraca, −48,3%. A perda da fraca vem de 2012 a 2014: em 11 das 17 perdas, o minério estava entre US$ 108 e US$ 128, acima do nível de hoje, e só contava como abaixo do piso porque o piso da época era de cerca de US$ 130.']));
+  p.append(figuraEstudo('margem_erro', 'Retorno mediano em 24 meses com intervalo de confiança de 95%',
+    ['Margem de erro calculada sorteando 10 mil histórias com blocos de 24 meses seguidos. A CARA é o sinal mais firme: fica abaixo da compra típica em todo o intervalo. A BARATA rendeu mais em mediana, mas o intervalo é largo.']));
+  p.append(el('div', { class: 'cartao solto' }, cabecalho('A régua com duas médias', 'As duas exigem a ação no lixo. Minério mediano na compra; retorno mediano e compras que ganharam, em dólar, com proventos, compras de 2011 a 2024.'),
+    tabelaOrdenavel([{ campo: 'regua', rotulo: 'Régua' }, { campo: 'sit', rotulo: 'Situação' }, { campo: 'minerio', rotulo: 'Minério', num: true, fmt: (v) => fmtUS(v, 0) },
+      { campo: 'r2', rotulo: '2 anos', num: true, fmt: pctZ }, { campo: 'g2', rotulo: 'Ganharam', num: true, fmt: (v) => fmtPct(v, 0, false) },
+      { campo: 'r5', rotulo: '5 anos', num: true, fmt: pctZ }, { campo: 'g5', rotulo: 'Ganharam', num: true, fmt: (v) => fmtPct(v, 0, false) }], E.reguas, { livre: true }),
+    el('p', { class: 'cartao-sub', style: 'margin-top:10px', text: 'A média fixa põe as situações na ordem esperada, mas é otimista; o piso de cada época é pessimista. O retorno histórico da BARATA em dois anos fica entre os dois: de +65% a +101%.' })));
+
+  p.append(el('h2', { class: 'secao', text: 'Em quanto tempo a compra dá resultado' }));
+  p.append(figuraEstudo('prazos', 'Retorno mediano e compras que ganharam em 6 meses, 1, 2, 3 e 5 anos, na BARATA forte, na fraca e na compra típica',
+    ['A BARATA forte deu resultado entre um e dois anos. A fraca, quase toda de 2012 a 2014, só virou positiva em cinco anos; em 2020, as compras fracas renderam 135% em dois anos.']));
+  p.append(figuraEstudo('tempo_volta', 'Meses até a ação passar do preço pago, sair do lixo, voltar ao pico e até o minério voltar ao piso',
+    ['A primeira alta vem em cerca de 2 meses, mas engana: para ficar acima do preço pago de vez, a forte levou 8 meses em mediana, e a fraca, 44.']));
+  p.append(figuraEstudo('acima_de_hoje', 'Retorno de compras com a ação mais perto do pico que hoje, com o minério no nível de hoje',
+    ['Pagar mais que hoje não impediu ganho em dois anos, mas nos primeiros seis meses a maioria dessas compras perdeu. São poucos casos, e a faixa de 20% a 30% abaixo do pico é quase toda de 2019 e 2020. Os preços em reais do gráfico são os de ' + E.data + '.']));
+
+  p.append(el('h2', { class: 'secao', text: 'Quando alocar e quando não alocar' }));
+  p.append(figuraEstudo('alocacao', 'Retorno em 2 e 5 anos por faixa do minério na compra',
+    [`Quanto mais alto o minério na compra, menor o retorno. Com o minério abaixo de US$ 80 e a ação no lixo, a compra rendeu ${pctUm(fh.melhor_r2)} em 2 anos e ${pctUm(fh.melhor_r5)} em 5, num episódio só, de 2014 a 2016. Com o minério de US$ 130 ou mais, quem comprou perdeu ${pctUm(-Math.abs(fh.cara_r2))} em 2 anos e ${pctUm(-Math.abs(fh.cara_r5))} em 5: por isso a régua indica não alocar nesse nível.`,
+      `No nível de hoje, o retorno ficou perto da compra típica em 2 anos (${pctUm(fh.r2)} contra ${pctUm(fh.tipica_r2)}), mas ${fmtPct(fh.g5, 1, false)} das compras estavam no lucro em 5 anos, contra ${fmtPct(fh.tipica_g5, 1, false)} da compra típica.`]));
+  p.append(el('div', { class: 'cartao solto' }, cabecalho(`A VALE3 em cada cenário do minério (preços de ${E.data})`, 'Preço estimado pela relação de 12 meses com o minério, com o dólar daquele dia e sem proventos. Margem de erro de 95%.'),
+    tabelaOrdenavel([{ campo: 'minerio', rotulo: 'Minério', num: true, fmt: (v) => fmtUS(v, Number.isInteger(v) ? 0 : v === R.piso ? 1 : 2) }, { campo: 'var_min', rotulo: 'Variação do minério', num: true, fmt: pctUm },
+      { campo: 'acao', rotulo: 'VALE3 estimada', num: true, fmt: (v) => fmtRS(v) }, { campo: 'var', rotulo: 'Variação da ação', num: true, fmt: pctZ },
+      { campo: 'ic', rotulo: 'Margem de erro', fmt: (v) => (v ? `${pctZ(v[0])} a ${pctZ(v[1])}` : '—') }], E.cenarios, { livre: true })));
+
+  p.append(el('h2', { class: 'secao', text: 'Mariana, Brumadinho e 2014' }));
+  p.append(figuraEstudo('acidentes', 'Retorno mediano da BARATA com todas as compras, sem 2014 e sem os dois acidentes',
+    ['Mariana foi em 11/2015 e Brumadinho em 01/2019. As perdas das compras de 2014 vieram antes de Mariana, com a queda do minério. Sem as compras ao redor dos dois acidentes, o retorno da BARATA quase não muda: de +65,2% para +61,3%.']));
+}
+
 // ------------------------------------------------------------------ abas e início
 let abaAtual = 'veredito', feitas = {};
-const RENDER = { veredito: renderVeredito, minerio: renderMinerio, margem: renderMargem, indicadores: renderIndicadores, mercado: renderMercado, metodo: renderMetodo };
+const RENDER = { veredito: renderVeredito, estudo: renderEstudo, minerio: renderMinerio, margem: renderMargem, indicadores: renderIndicadores, mercado: renderMercado, metodo: renderMetodo };
 function mostrar(aba) {
   abaAtual = aba;
   document.querySelectorAll('[role="tab"]').forEach((b) => b.setAttribute('aria-selected', b.dataset.aba === aba ? 'true' : 'false'));
