@@ -1,1 +1,1 @@
-window.INICIO_OURO = {"data_precos": "17/11/2026", "ver": "NEUTRO", "ouro": 3851.9, "termo": 73.1, "aviso": 85.0, "esticado": false};
+window.INICIO_OURO = {"data_precos": "18/11/2026", "ver": "NEUTRO", "ouro": 3741.9, "termo": 71.4, "aviso": 85.0, "esticado": false};
